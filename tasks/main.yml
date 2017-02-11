@@ -62,7 +62,8 @@
   command: >
     aws directconnect describe-virtual-interfaces
                       --profile '{{ aws_profile }}'
-                      --query 'virtualInterfaces[*]'
+                      --query 'virtualInterfaces[? virtualInterfaceState
+                                                   != `deleted`]'
   register: _aws_directconnect_existing_vifs_command
   changed_when: False
 
