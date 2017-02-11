@@ -1,0 +1,111 @@
+---
+
+- name: set VPC hostname list fact
+  set_fact:
+    _aws_vpcs: '{{ groups["aws-vpcs"] | sort }}'
+
+- name: set VPC name list fact
+  set_fact:
+    _aws_vpc_names: >
+      {{ (_aws_vpc_names | default([]))
+         + [hostvars[item]["aws_vpc_name"]] }}
+  with_items: '{{ _aws_vpcs }}'
+
+- block:
+
+    - include: roles/aws-vpc/tasks/vpc_id.yml
+    - include: roles/aws-vpc/tasks/vgw_ids.yml
+
+    - name: get AWS account number
+      command: >
+        aws sts get-caller-identity
+                --output text
+                --profile '{{ aws_profile }}'
+                --query 'Account'
+      register: _aws_vpc_account
+      changed_when: False
+
+    - name: set VPC virtual gateway ID fact
+      set_fact:
+        _aws_vpc_vgw_id: '{{ _aws_vpc_vgw_ids[0] }}'
+        _aws_vpc_vgw_ids: {}
+
+  when: inventory_hostname | truncate(8, True, "") == 'aws-vpc-'
+
+- block:
+
+    - name: set virtual gateway ID lookup dictionary fact
+      set_fact:
+        _aws_vpc_vgw_ids: >
+          {{ _aws_vpc_vgw_ids
+             | default({})
+             | combine({item: hostvars[item]["_aws_vpc_vgw_id"]}) }}
+      with_items: '{{ _aws_vpcs }}'
+      when: hostvars[item]["_aws_vpc_vgw_id"] is defined
+
+    - name: get Direct Connect connection ID
+      command: >
+        aws directconnect describe-connections
+                          --output text
+                          --profile '{{ aws_profile }}'
+                          --query 'connections[*].connectionId'
+      register: _aws_directconnect_id_command
+      changed_when: False
+
+    - name: set Direct Connect connection ID fact
+      set_fact:
+        _aws_directconnect_id: '{{ _aws_directconnect_id_command.stdout }}'
+
+  when: inventory_hostname == 'aws-account-h3-directconnect'
+
+- name: list existing virtual interfaces
+  command: >
+    aws directconnect describe-virtual-interfaces
+                      --profile '{{ aws_profile }}'
+                      --query 'virtualInterfaces[*]'
+  register: _aws_directconnect_existing_vifs_command
+  changed_when: False
+
+- name: initialize existing virtual interfaces fact
+  set_fact:
+    _aws_directconnect_existing_vifs: {}
+
+- name: set existing virtual interfaces fact
+  set_fact:
+    _aws_directconnect_existing_vifs: >
+      {{ _aws_directconnect_existing_vifs
+         | combine({(item.virtualInterfaceName | replace(" ", "") | lower):
+                    item}) }}
+  with_items: >
+    {{ _aws_directconnect_existing_vifs_command.stdout | from_json }}
+  no_log: True
+
+- block:
+
+    - name: allocate private virtual interfaces
+      command: >
+        aws directconnect allocate-private-virtual-interface
+                          --connection-id '{{ _aws_directconnect_id }}'
+                          --owner-account
+                            '{{ hostvars["aws-vpc-" + item]
+                                        ["_aws_vpc_account"].stdout }}'
+                          --new-private-virtual-interface-allocation
+                            '{{ lookup("template",
+                                       playbook_dir
+                                       + "/roles/aws-directconnect/templates/"
+                                       + "private-vif-allocation.json.j2")
+                                | to_nice_json }}'
+                          --profile '{{ aws_profile }}'
+      register: _aws_directconnect_private_vifs_allocate
+      with_items: >
+        {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
+
+    - name: remove generated BGP key temporary file
+      file:
+        path: '{{ "/tmp/" + item + ".bgpkey" }}'
+        state: absent
+      with_items: >
+        {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
+      changed_when: False
+
+  when: inventory_hostname == 'aws-account-h3-directconnect'
