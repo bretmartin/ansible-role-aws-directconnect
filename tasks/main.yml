@@ -110,3 +110,20 @@
       changed_when: False
 
   when: inventory_hostname == 'aws-account-h3-directconnect'
+
+- block:
+
+    - name: confirm private virtual interfaces
+      command: >
+        aws directconnect confirm-private-virtual-interface
+                          --virtual-interface-id
+                            '{{ _aws_directconnect_existing_vifs
+                                  [aws_vpc_name]["virtualInterfaceId"] }}'
+                          --virtual-gateway-id '{{ _aws_vpc_vgw_id }}'
+                          --profile '{{ aws_profile }}'
+      register: _aws_directconnect_private_vifs_confirm
+      when: >
+        _aws_directconnect_existing_vifs[aws_vpc_name]["virtualInterfaceState"]
+        == "confirming"
+
+  when: inventory_hostname | truncate(8, True, "") == 'aws-vpc-'
