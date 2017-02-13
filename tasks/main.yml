@@ -58,28 +58,7 @@
 
   when: inventory_hostname == 'aws-account-h3-directconnect'
 
-- name: list existing virtual interfaces
-  command: >
-    aws directconnect describe-virtual-interfaces
-                      --profile '{{ aws_profile }}'
-                      --query 'virtualInterfaces[? virtualInterfaceState
-                                                   != `deleted`]'
-  register: _aws_directconnect_existing_vifs_command
-  changed_when: False
-
-- name: initialize existing virtual interfaces fact
-  set_fact:
-    _aws_directconnect_existing_vifs: {}
-
-- name: set existing virtual interfaces fact
-  set_fact:
-    _aws_directconnect_existing_vifs: >
-      {{ _aws_directconnect_existing_vifs
-         | combine({(item.virtualInterfaceName | replace(" ", "") | lower):
-                    item}) }}
-  with_items: >
-    {{ _aws_directconnect_existing_vifs_command.stdout | from_json }}
-  no_log: True
+- include: vifs.yml
 
 - block:
 
@@ -112,6 +91,8 @@
   when: inventory_hostname == 'aws-account-h3-directconnect'
 
 - block:
+
+    - include: vifs.yml
 
     - name: confirm private virtual interfaces
       command: >
