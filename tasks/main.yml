@@ -11,6 +11,14 @@
          + [hostvars[item]["aws_vpc_name"]] }}
   with_items: '{{ _aws_vpcs }}'
 
+- name: set flag for whether this host is a VPC
+  set_fact:
+    is_vpc: >-
+      {{ ((inventory_hostname
+           | truncate(length=8, killwords=True, end="", leeway=0))
+          == 'aws-vpc-')
+         | bool }}
+
 - block:
 
     - include: roles/aws-vpc/tasks/vpc_id.yml
@@ -30,7 +38,7 @@
         _aws_vpc_vgw_id: '{{ _aws_vpc_vgw_ids[0] }}'
         _aws_vpc_vgw_ids: {}
 
-  when: inventory_hostname | truncate(8, True, "") == 'aws-vpc-'
+  when: is_vpc
 
 - block:
 
@@ -107,4 +115,4 @@
         _aws_directconnect_existing_vifs[aws_vpc_name]["virtualInterfaceState"]
         == "confirming"
 
-  when: inventory_hostname | truncate(8, True, "") == 'aws-vpc-'
+  when: is_vpc
