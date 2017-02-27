@@ -64,7 +64,7 @@
       set_fact:
         _aws_directconnect_id: '{{ _aws_directconnect_id_command.stdout }}'
 
-  when: inventory_hostname == 'aws-account-h3-directconnect'
+  when: inventory_hostname == aws_directconnect_account_hostname
 
 - include: vifs.yml
 
@@ -96,7 +96,7 @@
         {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
       changed_when: False
 
-  when: inventory_hostname == 'aws-account-h3-directconnect'
+  when: inventory_hostname == aws_directconnect_account_hostname
 
 - include: vifs.yml
 
