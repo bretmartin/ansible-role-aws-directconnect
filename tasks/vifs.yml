@@ -17,8 +17,7 @@
   set_fact:
     _aws_directconnect_existing_vifs: >
       {{ _aws_directconnect_existing_vifs
-         | combine({(item.virtualInterfaceName | replace(" ", "") | lower):
-                    item}) }}
+         | combine({item.virtualInterfaceName: item}) }}
   with_items: >
     {{ _aws_directconnect_existing_vifs_command.stdout | from_json }}
   no_log: True
