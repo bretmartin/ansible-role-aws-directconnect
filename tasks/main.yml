@@ -71,7 +71,7 @@
 
   when: inventory_hostname == aws_directconnect_account_hostname
 
-- include: vifs.yml
+- include_tasks: vifs.yml
 
 - block:
 
@@ -103,7 +103,7 @@
 
   when: inventory_hostname == aws_directconnect_account_hostname
 
-- include: vifs.yml
+- include_tasks: vifs.yml
 
 - block:
 
