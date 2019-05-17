@@ -2,7 +2,7 @@
 
 - name: set VPC hostname list fact
   set_fact:
-    _aws_vpcs: '{{ groups["aws-vpcs"] | sort }}'
+    _aws_vpcs: '{{ groups["aws_vpcs"] | sort }}'
 
 - name: set VPC name list fact
   set_fact:
