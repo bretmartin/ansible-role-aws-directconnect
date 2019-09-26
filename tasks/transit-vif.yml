@@ -1,0 +1,59 @@
+---
+
+- name: check for existing Direct Connect Transit Virtual Interface
+  command: >
+    aws directconnect
+      describe-virtual-interfaces
+        --connection-id '{{ aws_directconnect_connection }}'
+        --output text
+        --profile '{{ aws_profile }}'
+        --query 'virtualInterfaces
+                   [?
+                    virtualInterfaceType  == `transit`
+                    &&
+                    virtualInterfaceState != `deleting`
+                    &&
+                    virtualInterfaceState != `deleted`
+                    &&
+                    virtualInterfaceState != `rejected`
+                   ]
+                   .virtualInterfaceId'
+        --region '{{ aws_region }}'
+  register: _aws_directconnect_transit_vif
+  changed_when: false
+
+- name: set Direct Connect Transit Virtual Interface ID fact
+  set_fact:
+    _aws_directconnect_transit_vif_id:
+      '{{ _aws_directconnect_transit_vif.stdout }}'
+
+- name: create Direct Connect Transit Virtual Interface
+  command: >
+    aws directconnect
+      create-transit-virtual-interface
+        --connection-id '{{ aws_directconnect_connection }}'
+        --new-transit-virtual-interface '{
+            "virtualInterfaceName": "transit",
+            "vlan":
+               '{{ aws_directconnect_transit_vif_vlan }}',
+            "asn":
+               '{{ aws_directconnect_asn }}',
+            "amazonAddress":
+              "'{{ aws_directconnect_transit_vif_amazon_address }}'",
+            "customerAddress":
+              "'{{ aws_directconnect_transit_vif_customer_address }}'",
+            "directConnectGatewayId":
+              "'{{ _aws_directconnect_gateway_id }}'"
+          }'
+        --output text
+        --profile '{{ aws_profile }}'
+        --query 'virtualInterface.virtualInterfaceId'
+        --region '{{ aws_region }}'
+  register: _aws_directconnect_transit_vif
+  when: _aws_directconnect_transit_vif_id == ''
+
+- name: set Direct Connect Transit Virtual Interface ID fact
+  set_fact:
+    _aws_directconnect_transit_vif_id:
+      '{{ _aws_directconnect_transit_vif.stdout }}'
+  when: _aws_directconnect_transit_vif is not skipped

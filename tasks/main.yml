@@ -23,6 +23,12 @@
   when:
     aws_directconnect_gateway_asn                  is defined
 
+- include_tasks: transit-vif.yml
+  when:
+    aws_directconnect_transit_vif_amazon_address   is defined and
+    aws_directconnect_transit_vif_customer_address is defined and
+    aws_directconnect_transit_vif_vlan             is defined
+
 - block:
 
     - include_role:
