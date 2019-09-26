@@ -1,0 +1,41 @@
+---
+
+- name: get existing Direct Connect Gateway data
+  command: >
+    aws directconnect
+      describe-direct-connect-gateways
+        --output text
+        --profile '{{ aws_profile }}'
+        --query 'directConnectGateways
+                 [?
+                   directConnectGatewayName == `'{{ aws_region }}'`
+                   &&
+                   amazonSideAsn == `'{{ aws_directconnect_gateway_asn }}'`
+                   &&
+                   directConnectGatewayState != `deleting`
+                   &&
+                   directConnectGatewayState != `deleted`
+                 ]
+                 .directConnectGatewayId'
+        --region '{{ aws_region }}'
+  register: _aws_directconnect_gateway
+  changed_when: false
+
+- name: set Direct Connect Gateway ID fact
+  set_fact:
+    _aws_directconnect_gateway_id: '{{ _aws_directconnect_gateway.stdout }}'
+
+- name: create Direct Connect Gateway
+  aws_direct_connect_gateway:
+    amazon_asn: '{{ aws_directconnect_gateway_asn }}'
+    name: '{{ aws_region }}'
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+  register: _aws_directconnect_gateway
+  when: _aws_directconnect_gateway_id == ''
+
+- name: set Direct Connect Gateway ID fact
+  set_fact:
+    _aws_directconnect_gateway_id:
+      '{{ _aws_directconnect_gateway.direct_connect_gateway_id }}'
+  when: _aws_directconnect_gateway is changed

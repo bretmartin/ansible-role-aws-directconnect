@@ -19,6 +19,10 @@
           == 'aws-vpc-')
          | bool }}
 
+- include_tasks: gateway.yml
+  when:
+    aws_directconnect_gateway_asn                  is defined
+
 - block:
 
     - include_role:
