@@ -105,14 +105,6 @@
       with_items: >
         {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
 
-    - name: remove generated BGP key temporary file
-      file:
-        path: '{{ "/tmp/" + item + ".bgpkey" }}'
-        state: absent
-      with_items: >
-        {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
-      changed_when: False
-
   when: inventory_hostname == aws_directconnect_account_hostname
 
 - include_tasks: vifs.yml
