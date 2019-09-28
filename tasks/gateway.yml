@@ -5,7 +5,7 @@
 - name: create Direct Connect Gateway
   aws_direct_connect_gateway:
     amazon_asn: '{{ aws_directconnect_gateway_asn }}'
-    name: '{{ aws_region }}'
+    name: '{{ aws_directconnect_gateway_name }}'
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_directconnect_gateway

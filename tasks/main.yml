@@ -21,7 +21,8 @@
 
 - include_tasks: gateway.yml
   when:
-    aws_directconnect_gateway_asn                  is defined
+    aws_directconnect_gateway_asn                  is defined and
+    aws_directconnect_gateway_name                 is defined
 
 - include_tasks: transit-vif.yml
   when:
