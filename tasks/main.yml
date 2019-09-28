@@ -66,18 +66,7 @@
       with_items: '{{ _aws_vpcs }}'
       when: hostvars[item]["_aws_vpc_vgw_id"] is defined
 
-    - name: get Direct Connect connection ID
-      command: >
-        aws directconnect describe-connections
-                          --output text
-                          --profile '{{ aws_profile }}'
-                          --query 'connections[*].connectionId'
-      register: _aws_directconnect_id_command
-      changed_when: False
-
-    - name: set Direct Connect connection ID fact
-      set_fact:
-        _aws_directconnect_id: '{{ _aws_directconnect_id_command.stdout }}'
+    - include_tasks: id.yml
 
   when: inventory_hostname == aws_directconnect_account_hostname
 

@@ -1,0 +1,14 @@
+---
+
+- name: get Direct Connect connection ID
+  command: >
+    aws directconnect describe-connections
+                      --output text
+                      --profile '{{ aws_profile }}'
+                      --query 'connections[*].connectionId'
+  register: _aws_directconnect_id_command
+  changed_when: False
+
+- name: set Direct Connect connection ID fact
+  set_fact:
+    _aws_directconnect_id: '{{ _aws_directconnect_id_command.stdout }}'
