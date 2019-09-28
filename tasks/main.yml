@@ -55,7 +55,12 @@
 
     - name: set VPC virtual gateway ID fact
       set_fact:
-        _aws_vpc_vgw_id: '{{ _aws_vpc_vgw_ids[0] }}'
+        _aws_vpc_vgw_id: >-
+          {{
+            _aws_vpc_vgw_ids[0]
+            if _aws_vpc_vgw_ids != []
+            else ''
+          }}
         _aws_vpc_vgw_ids: {}
 
   when: is_vpc
@@ -112,4 +117,4 @@
         _aws_directconnect_existing_vifs[aws_vpc_name]["virtualInterfaceState"]
         == "confirming"
 
-  when: is_vpc
+  when: is_vpc and _aws_vpc_vgw_id != ''
