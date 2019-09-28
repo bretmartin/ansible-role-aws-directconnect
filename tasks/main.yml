@@ -85,6 +85,7 @@
       register: _aws_directconnect_private_vifs_allocate
       with_items: >
         {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
+      when: hostvars["aws-vpc-" + item]["_aws_vpc_vgw_id"] != ''
 
   when: inventory_hostname == aws_directconnect_account_hostname
 
