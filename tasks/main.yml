@@ -61,20 +61,8 @@
             if _aws_vpc_vgw_ids != []
             else ''
           }}
-        _aws_vpc_vgw_ids: {}
 
   when: is_vpc
-
-- name: set virtual gateway ID lookup dictionary fact
-  set_fact:
-    _aws_vpc_vgw_ids: >
-      {{ _aws_vpc_vgw_ids
-         | default({})
-         | combine({item: hostvars[item]["_aws_vpc_vgw_id"]}) }}
-  with_items: '{{ _aws_vpcs }}'
-  when: >
-    hostvars[item]["_aws_vpc_vgw_id"] is defined and
-    inventory_hostname == aws_directconnect_account_hostname
 
 - include_tasks: vifs.yml
 
