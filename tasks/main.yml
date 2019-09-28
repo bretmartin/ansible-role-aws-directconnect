@@ -19,6 +19,9 @@
           == 'aws-vpc-')
          | bool }}
 
+- include_tasks: id.yml
+  when: inventory_hostname == aws_directconnect_account_hostname
+
 - include_tasks: gateway.yml
   when:
     aws_directconnect_gateway_asn                  is defined
@@ -55,20 +58,16 @@
 
   when: is_vpc
 
-- block:
-
-    - name: set virtual gateway ID lookup dictionary fact
-      set_fact:
-        _aws_vpc_vgw_ids: >
-          {{ _aws_vpc_vgw_ids
-             | default({})
-             | combine({item: hostvars[item]["_aws_vpc_vgw_id"]}) }}
-      with_items: '{{ _aws_vpcs }}'
-      when: hostvars[item]["_aws_vpc_vgw_id"] is defined
-
-    - include_tasks: id.yml
-
-  when: inventory_hostname == aws_directconnect_account_hostname
+- name: set virtual gateway ID lookup dictionary fact
+  set_fact:
+    _aws_vpc_vgw_ids: >
+      {{ _aws_vpc_vgw_ids
+         | default({})
+         | combine({item: hostvars[item]["_aws_vpc_vgw_id"]}) }}
+  with_items: '{{ _aws_vpcs }}'
+  when: >
+    hostvars[item]["_aws_vpc_vgw_id"] is defined and
+    inventory_hostname == aws_directconnect_account_hostname
 
 - include_tasks: vifs.yml
 
