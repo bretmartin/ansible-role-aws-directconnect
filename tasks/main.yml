@@ -55,61 +55,51 @@
 
     - name: set VPC virtual gateway ID fact
       set_fact:
-        _aws_vpc_vgw_id: '{{ _aws_vpc_vgw_ids[0] }}'
-        _aws_vpc_vgw_ids: {}
+        _aws_vpc_vgw_id: >-
+          {{
+            _aws_vpc_vgw_ids[0]
+            if _aws_vpc_vgw_ids != []
+            else ''
+          }}
 
   when: is_vpc
 
-- name: set virtual gateway ID lookup dictionary fact
-  set_fact:
-    _aws_vpc_vgw_ids: >
-      {{ _aws_vpc_vgw_ids
-         | default({})
-         | combine({item: hostvars[item]["_aws_vpc_vgw_id"]}) }}
-  with_items: '{{ _aws_vpcs }}'
+- include_tasks: vifs.yml
+
+- name: allocate private virtual interfaces
+  command: >
+    aws directconnect allocate-private-virtual-interface
+                      --connection-id '{{ _aws_directconnect_id }}'
+                      --owner-account
+                        '{{ hostvars["aws-vpc-" + item]
+                                    ["_aws_vpc_account"].stdout }}'
+                      --new-private-virtual-interface-allocation
+                        '{{ lookup("template",
+                                   playbook_dir
+                                   + "/roles/aws-directconnect/templates/"
+                                   + "private-vif-allocation.json.j2")
+                            | to_nice_json }}'
+                      --profile '{{ aws_profile }}'
+  register: _aws_directconnect_private_vifs_allocate
+  with_items: >
+    {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
   when: >
-    hostvars[item]["_aws_vpc_vgw_id"] is defined and
+    hostvars["aws-vpc-" + item]["_aws_vpc_vgw_id"] != '' and
     inventory_hostname == aws_directconnect_account_hostname
 
 - include_tasks: vifs.yml
 
-- block:
-
-    - name: allocate private virtual interfaces
-      command: >
-        aws directconnect allocate-private-virtual-interface
-                          --connection-id '{{ _aws_directconnect_id }}'
-                          --owner-account
-                            '{{ hostvars["aws-vpc-" + item]
-                                        ["_aws_vpc_account"].stdout }}'
-                          --new-private-virtual-interface-allocation
-                            '{{ lookup("template",
-                                       playbook_dir
-                                       + "/roles/aws-directconnect/templates/"
-                                       + "private-vif-allocation.json.j2")
-                                | to_nice_json }}'
-                          --profile '{{ aws_profile }}'
-      register: _aws_directconnect_private_vifs_allocate
-      with_items: >
-        {{ _aws_vpc_names | difference(_aws_directconnect_existing_vifs) }}
-
-  when: inventory_hostname == aws_directconnect_account_hostname
-
-- include_tasks: vifs.yml
-
-- block:
-
-    - name: confirm private virtual interfaces
-      command: >
-        aws directconnect confirm-private-virtual-interface
-                          --virtual-interface-id
-                            '{{ _aws_directconnect_existing_vifs
-                                  [aws_vpc_name]["virtualInterfaceId"] }}'
-                          --virtual-gateway-id '{{ _aws_vpc_vgw_id }}'
-                          --profile '{{ aws_profile }}'
-      register: _aws_directconnect_private_vifs_confirm
-      when: >
-        _aws_directconnect_existing_vifs[aws_vpc_name]["virtualInterfaceState"]
-        == "confirming"
-
-  when: is_vpc
+- name: confirm private virtual interfaces
+  command: >
+    aws directconnect confirm-private-virtual-interface
+                      --virtual-interface-id
+                        '{{ _aws_directconnect_existing_vifs
+                              [aws_vpc_name]["virtualInterfaceId"] }}'
+                      --virtual-gateway-id '{{ _aws_vpc_vgw_id }}'
+                      --profile '{{ aws_profile }}'
+  register: _aws_directconnect_private_vifs_confirm
+  when: >
+    is_vpc and
+    _aws_vpc_vgw_id != '' and
+    _aws_directconnect_existing_vifs[aws_vpc_name]["virtualInterfaceState"]
+      == "confirming"
