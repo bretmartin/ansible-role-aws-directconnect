@@ -4,7 +4,7 @@
   command: >
     aws directconnect
       describe-virtual-interfaces
-        --connection-id '{{ aws_directconnect_connection }}'
+        --connection-id '{{ _aws_directconnect_id }}'
         --output text
         --profile '{{ aws_profile }}'
         --query 'virtualInterfaces
@@ -31,7 +31,7 @@
   command: >
     aws directconnect
       create-transit-virtual-interface
-        --connection-id '{{ aws_directconnect_connection }}'
+        --connection-id '{{ _aws_directconnect_id }}'
         --new-transit-virtual-interface '{
             "virtualInterfaceName": "transit",
             "vlan":
