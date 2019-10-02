@@ -2,8 +2,6 @@
     "virtualInterfaceName": "{{ item }}",
     "vlan": {{ hostvars["aws-vpc-" + item]["aws_directconnect_vlan"] }},
     "asn": {{ aws_directconnect_asn }},
-    "authKey":
-        "{{ lookup('password', '/tmp/' + item + '.bgpkey length=24') }}",
     "amazonAddress":
         "{{ hostvars["aws-vpc-" + item]["aws_directconnect_peer_network"]
             | ipaddr("1") }}",
